@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@lottiefiles/dotlottie-vue':
+        specifier: ^0.11.28
+        version: 0.11.28(vue@3.5.45(typescript@6.0.3))
       axios:
         specifier: ^1.21.0
         version: 1.21.0(debug@4.4.3)
@@ -261,6 +264,16 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@lottiefiles/dotlottie-vue@0.11.28':
+    resolution: {integrity: sha512-FoTfPa0Was/kvoOe97Z7yVHKDpgywTyP/XbxyAsAdS9yt/WQEPEPZwp6BiMrtOhM6uf97UIJb0qC8F1qQLk5Dw==}
+    engines: {node: '>=18.17.0', npm: '>=9.5.0'}
+    peerDependencies:
+      vue: ^3.3.4
+
+  '@lottiefiles/dotlottie-web@0.81.0':
+    resolution: {integrity: sha512-BmX/+0eaK2unVexuB0VZLvBsax2BS8fLwwIdUqF4AO9C7tFw97eTi90C//20QVK4q08SDhnnszysCGX0Qt7XPA==}
+    engines: {node: '>=18.17.0', npm: '>=9.5.0'}
 
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
@@ -1676,6 +1689,13 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@lottiefiles/dotlottie-vue@0.11.28(vue@3.5.45(typescript@6.0.3))':
+    dependencies:
+      '@lottiefiles/dotlottie-web': 0.81.0
+      vue: 3.5.45(typescript@6.0.3)
+
+  '@lottiefiles/dotlottie-web@0.81.0': {}
 
   '@oxc-project/types@0.156.0': {}
 
