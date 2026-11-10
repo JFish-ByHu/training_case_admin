@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -22,7 +22,16 @@ body,
 
 body {
   min-height: 100dvh;
-  color: var(--el-text-color-primary, #303133);
-  background: var(--el-bg-color-page, #f2f3f5);
+  color: var(--el-text-color-primary);
+  background: var(--el-bg-color-page);
   font-size: 16px;
+}
+
+#nprogress .bar {
+  z-index: 3000;
+  background: var(--el-color-primary);
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--el-color-primary), 0 0 5px var(--el-color-primary);
 }

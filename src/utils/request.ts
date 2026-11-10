@@ -1,6 +1,8 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
+import NProgress from 'nprogress'
 import 'element-plus/es/components/message/style/css'
+import 'nprogress/nprogress.css'
 import { pinia, useAuthStore } from '@/stores'
 
 export interface ApiResponse<T> {
@@ -32,6 +34,18 @@ const service = axios.create({
   timeout: 15000
 })
 
+NProgress.configure({ showSpinner: false })
+let pendingRequests = 0
+
+function startProgress() {
+  if (pendingRequests++ === 0) NProgress.start()
+}
+
+function finishProgress() {
+  if (pendingRequests === 0) return
+  if (--pendingRequests === 0) NProgress.done()
+}
+
 service.interceptors.request.use(config => {
   const { skipAuth } = config as RequestConfig
   const { token } = useAuthStore(pinia)
@@ -40,6 +54,7 @@ service.interceptors.request.use(config => {
   } else if (token) {
     config.headers.set('Authorization', `Bearer ${token}`)
   }
+  startProgress()
   return config
 })
 
@@ -68,6 +83,7 @@ function reportError(error: ApiError, config?: RequestConfig): never {
 
 service.interceptors.response.use(
   response => {
+    finishProgress()
     const body: unknown = response.data
     if (!isApiResponse(body)) {
       return reportError(
@@ -85,6 +101,7 @@ service.interceptors.response.use(
     return response
   },
   (error: unknown) => {
+    finishProgress()
     // 用户主动取消请求时，不显示错误提示。
     if (axios.isCancel(error)) return Promise.reject(error)
     if (axios.isAxiosError(error)) {

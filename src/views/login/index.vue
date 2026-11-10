@@ -1,9 +1,93 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { fetchCaptcha, login, type CaptchaResult, type LoginResult } from '@/api/auth'
+import { useAuthStore } from '@/stores'
 import LoginAnimation from './components/LoginAnimation.vue'
 
-const form = reactive({ username: '', password: '' })
-const rememberPassword = ref(false)
+const router = useRouter()
+const authStore = useAuthStore()
+const formRef = ref<FormInstance>()
+const form = reactive({ username: '', password: '', captchaCode: '' })
+const captcha = ref<CaptchaResult | null>(null)
+const captchaLoading = ref(false)
+const submitting = ref(false)
+
+const rules: FormRules<typeof form> = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captchaCode: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { pattern: /^[0-9]{4}$/, message: '请输入4位数字验证码', trigger: 'blur' }
+  ]
+}
+
+async function loadCaptcha() {
+  captcha.value = null
+  form.captchaCode = ''
+  formRef.value?.clearValidate('captchaCode')
+  try {
+    captcha.value = await fetchCaptcha()
+  } catch {
+    // 请求器已经显示错误，保留重新获取入口。
+  }
+}
+
+async function submitLogin() {
+  if (submitting.value) return
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+  if (!captcha.value) {
+    ElMessage.warning('请先获取验证码')
+    return
+  }
+
+  submitting.value = true
+  let result: LoginResult
+  try {
+    result = await login({
+      username: form.username.trim(),
+      password: form.password,
+      captchaId: captcha.value.captchaId,
+      captchaCode: form.captchaCode
+    })
+  } catch {
+    await loadCaptcha()
+    submitting.value = false
+    return
+  }
+
+  authStore.setToken(result.accessToken)
+  authStore.setUser(result.user)
+  if (authStore.rememberMe) {
+    try {
+      await authStore.saveRememberedCredentials(form.username.trim(), form.password)
+    } catch {
+      authStore.clearRememberedCredentials()
+      ElMessage.warning('无法保存登录信息')
+    }
+  } else {
+    authStore.clearRememberedCredentials()
+  }
+  submitting.value = false
+  await router.replace('/dashboard')
+  ElMessage.success('登录成功')
+}
+
+function changeRememberMe(value: boolean | string | number) {
+  if (!value) authStore.clearRememberedCredentials()
+}
+
+onMounted(() => {
+  void loadCaptcha()
+  void authStore.restoreRememberedCredentials().then(credentials => {
+    if (credentials && !form.username && !form.password) {
+      form.username = credentials.username
+      form.password = credentials.password
+    }
+  })
+})
 </script>
 
 <template>
@@ -18,7 +102,13 @@ const rememberPassword = ref(false)
         <h2 id="login-title">欢迎登录</h2>
       </header>
 
-      <ElForm :model="form" label-position="top" @submit.prevent>
+      <ElForm
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-position="top"
+        @submit.prevent="submitLogin"
+      >
         <ElFormItem prop="username">
           <ElInput
             v-model="form.username"
@@ -41,12 +131,42 @@ const rememberPassword = ref(false)
           />
         </ElFormItem>
 
+        <ElFormItem prop="captchaCode">
+          <div class="captcha-row">
+            <ElInput
+              v-model="form.captchaCode"
+              aria-label="验证码"
+              autocomplete="off"
+              inputmode="numeric"
+              maxlength="4"
+              placeholder="请输入验证码"
+              size="large"
+            />
+            <ElButton
+              class="captcha-display"
+              :disabled="submitting"
+              :loading="captchaLoading"
+              size="large"
+              title="刷新验证码"
+              type="default"
+              @click="loadCaptcha"
+            >
+              {{ captcha?.captchaCode }}
+            </ElButton>
+          </div>
+        </ElFormItem>
+
         <div class="form-options">
-          <ElCheckbox v-model="rememberPassword">记住密码</ElCheckbox>
-          <ElButton link type="primary">忘记密码</ElButton>
+          <ElCheckbox v-model="authStore.rememberMe" @change="changeRememberMe">记住我</ElCheckbox>
         </div>
 
-        <ElButton class="submit-button" native-type="submit" size="large" type="primary">
+        <ElButton
+          class="submit-button"
+          :loading="submitting"
+          native-type="submit"
+          size="large"
+          type="primary"
+        >
           登录
         </ElButton>
       </ElForm>
@@ -59,7 +179,7 @@ const rememberPassword = ref(false)
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-height: 100dvh;
-  background: var(--el-bg-color-page, #f2f3f5);
+  background: var(--el-bg-color-page);
 }
 
 .login-visual {
@@ -70,7 +190,7 @@ const rememberPassword = ref(false)
   min-height: 100dvh;
   padding: clamp(32px, 6vw, 72px);
   overflow: hidden;
-  background: #edf6ff;
+  background: var(--el-color-primary);
 }
 
 .login-visual::after {
@@ -107,7 +227,7 @@ const rememberPassword = ref(false)
 }
 
 .product-name {
-  color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary);
 }
 
 .visual-copy h1 {
@@ -131,7 +251,7 @@ const rememberPassword = ref(false)
   align-items: center;
   justify-content: center;
   padding: 32px clamp(24px, 6vw, 96px);
-  background-color: #fff;
+  background-color: var(--el-bg-color);
 }
 
 .login-panel > * {
@@ -148,7 +268,7 @@ const rememberPassword = ref(false)
 
 .login-header h2 {
   margin-bottom: 8px;
-  color: var(--el-text-color-primary, #303133);
+  color: var(--el-text-color-primary);
   font-size: 28px;
   font-weight: 600;
   line-height: 1.25;
@@ -157,7 +277,7 @@ const rememberPassword = ref(false)
 
 .login-header p:last-child,
 .login-hint {
-  color: var(--el-text-color-regular, #606266);
+  color: var(--el-text-color-regular);
   font-size: 14px;
 }
 
@@ -174,31 +294,43 @@ const rememberPassword = ref(false)
 }
 
 .submit-button {
-  border-color: var(--el-color-primary, #409eff);
-  background: var(--el-color-primary, #409eff);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
 }
 
 .submit-button:hover,
 .submit-button:focus-visible {
-  border-color: var(--el-color-primary-dark-2, #337ecc);
-  background: var(--el-color-primary-dark-2, #337ecc);
+  border-color: var(--el-color-primary-dark-2);
+  background: var(--el-color-primary-dark-2);
+}
+
+.captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.captcha-row :deep(.el-input) {
+  min-width: 0;
+  flex: 1;
+}
+
+.captcha-display {
+  width: 116px;
+  height: 40px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .form-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: 24px;
 }
 
 .form-options :deep(.el-checkbox) {
   margin-right: 0;
-}
-
-.form-options :deep(.el-button) {
-  min-height: 32px;
-  padding: 4px 0;
-  font-size: 14px;
 }
 
 .login-hint {
