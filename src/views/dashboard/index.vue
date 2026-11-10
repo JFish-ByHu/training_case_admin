@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 控制台演示页，当前指标与动态均为静态示例数据。 */
 const metrics = [
   { label: '用户总数', value: '128', change: '较上周 +12' },
   { label: '活跃用户', value: '96', change: '最近 7 天' },

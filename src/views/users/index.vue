@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 用户管理页面：负责筛选、分页、详情查看和单条/批量管理操作。
+ * 数据请求及用户资料模型由 api/users 封装，与通用 Filter、Tabel 组件协作。
+ */
 import { computed, onMounted, ref } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -59,16 +63,17 @@ const actions: TabelAction<UserRecord>[] = [
 ]
 const selectedCount = computed(() => selectedUsers.value.length)
 
-function formatDateTime(value: string | null | undefined) {
+const formatDateTime = (value: string | null | undefined) => {
   return value ? value.replace('T', ' ').slice(0, 19) : '-'
 }
 
-function clearSelection() {
+const clearSelection = () => {
   tableRef.value?.clearSelection()
   selectedUsers.value = []
 }
 
-async function loadUsers() {
+/** 加载当前筛选和分页条件下的用户，并忽略过期请求结果。 */
+const loadUsers = async () => {
   const requestId = ++listRequestId
   loading.value = true
   clearSelection()
@@ -97,7 +102,7 @@ async function loadUsers() {
   }
 }
 
-async function loadCurrentUser() {
+const loadCurrentUser = async () => {
   try {
     const user = await readCurrentUser()
     currentUserId.value = user.id
@@ -108,26 +113,26 @@ async function loadCurrentUser() {
   }
 }
 
-function searchUsers(value: UserFilter) {
+const searchUsers = (value: UserFilter) => {
   appliedFilter.value = { ...value }
   currentPage.value = 1
   void loadUsers()
 }
 
-function resetUsers(value: UserFilter) {
+const resetUsers = (value: UserFilter) => {
   searchUsers(value)
 }
 
-function changeUserPage() {
+const changeUserPage = () => {
   void loadUsers()
 }
 
-function openCreate() {
+const openCreate = () => {
   editingUser.value = null
   formVisible.value = true
 }
 
-async function openEdit(row: UserRecord) {
+const openEdit = async (row: UserRecord) => {
   if (openingUserId.value) return
   openingUserId.value = row.id
   try {
@@ -140,7 +145,7 @@ async function openEdit(row: UserRecord) {
   }
 }
 
-async function openDetail(row: UserRecord) {
+const openDetail = async (row: UserRecord) => {
   detailVisible.value = true
   detailLoading.value = true
   detailUser.value = null
@@ -153,7 +158,8 @@ async function openDetail(row: UserRecord) {
   }
 }
 
-async function confirmDeleteUsers(targets: UserRecord[], batch = false) {
+/** 二次确认后删除指定用户；批量操作与单条删除共用此流程。 */
+const confirmDeleteUsers = async (targets: UserRecord[], batch = false) => {
   if (mutating.value || !targets.length) return
   const ids = [...new Set(targets.map(user => user.id))]
   if (currentUserId.value && ids.includes(currentUserId.value)) return
@@ -181,17 +187,17 @@ async function confirmDeleteUsers(targets: UserRecord[], batch = false) {
   }
 }
 
-function deleteSelectedUsers() {
+const deleteSelectedUsers = () => {
   void confirmDeleteUsers(selectedUsers.value, true)
 }
 
-function selectUserAction(key: string, row: UserRecord) {
+const selectUserAction = (key: string, row: UserRecord) => {
   if (key === 'edit') void openEdit(row)
   if (key === 'detail') void openDetail(row)
   if (key === 'delete') void confirmDeleteUsers([row])
 }
 
-function refreshAfterSave() {
+const refreshAfterSave = () => {
   if (!editingUser.value) currentPage.value = 1
   void loadUsers()
 }

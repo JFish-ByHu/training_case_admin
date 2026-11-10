@@ -5,6 +5,7 @@ const TOKEN_KEY = 'demo_admin_access_token'
 const USER_KEY = 'demo_admin_current_user'
 const REMEMBER_KEY = 'demo_admin_remembered_credentials'
 
+/** 登录用户在前端持有的最小身份信息。 */
 export interface AuthUser {
   id: string
   username: string
@@ -12,7 +13,8 @@ export interface AuthUser {
   role: 'ADMIN' | 'USER'
 }
 
-function restoreCurrentUser(): AuthUser | null {
+/** 从当前会话恢复用户缓存，并拒绝结构不完整或角色非法的数据。 */
+const restoreCurrentUser = (): AuthUser | null => {
   try {
     const value = sessionStorage.getItem(USER_KEY)
     if (!value) return null
@@ -37,6 +39,7 @@ interface StoredCredentials {
   ciphertext: string
 }
 
+/** 管理访问令牌、当前用户和加密保存的记住我凭据。 */
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: sessionStorage.getItem(TOKEN_KEY) as string | null,
@@ -44,20 +47,24 @@ export const useAuthStore = defineStore('auth', {
     rememberMe: Boolean(localStorage.getItem(REMEMBER_KEY))
   }),
   actions: {
+    /** 保存访问令牌至当前会话存储。 */
     setToken(token: string) {
       sessionStorage.setItem(TOKEN_KEY, token)
       this.token = token
     },
+    /** 更新当前用户缓存。 */
     setUser(user: AuthUser) {
       sessionStorage.setItem(USER_KEY, JSON.stringify(user))
       this.user = user
     },
+    /** 清除访问令牌和用户会话信息。 */
     removeToken() {
       sessionStorage.removeItem(TOKEN_KEY)
       sessionStorage.removeItem(USER_KEY)
       this.token = null
       this.user = null
     },
+    /** 解密读取记住我凭据；存储内容无效时自动清理。 */
     async restoreRememberedCredentials() {
       const stored = localStorage.getItem(REMEMBER_KEY)
       if (!stored) {
@@ -82,11 +89,13 @@ export const useAuthStore = defineStore('auth', {
         return null
       }
     },
+    /** 加密后保存记住我凭据，不将密码明文写入本地存储。 */
     async saveRememberedCredentials(username: string, password: string) {
       const encrypted = await encryptPassword(password)
       localStorage.setItem(REMEMBER_KEY, JSON.stringify({ username, ...encrypted }))
       this.rememberMe = true
     },
+    /** 删除已保存的记住我凭据并关闭记住我状态。 */
     clearRememberedCredentials() {
       localStorage.removeItem(REMEMBER_KEY)
       this.rememberMe = false

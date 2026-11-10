@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 登录页背景动效；背景色可由父组件传入，动画装饰内容不参与交互。 */
 import { DotLottieVue } from '@lottiefiles/dotlottie-vue'
 
 defineProps<{

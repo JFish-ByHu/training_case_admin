@@ -10,34 +10,39 @@ const props = withDefaults(defineProps<{
   loading?: boolean
 }>(), { loading: false })
 const model = defineModel<Model>({ required: true })
+/** 搜索和重置事件都返回独立拷贝，避免调用方修改筛选表单引用。 */
 const emit = defineEmits<{ search: [value: Model]; reset: [value: Model] }>()
 const formId = useId()
 
-function updateField(field: FilterField<Model>, value: unknown) {
+/** 更新单个筛选字段，同时保留筛选模型的其他字段。 */
+const updateField = (field: FilterField<Model>, value: unknown) => {
   model.value = { ...model.value, [field.prop]: value }
 }
 
-function fieldWidth(field: FilterField<Model>) {
+const fieldWidth = (field: FilterField<Model>) => {
   const width = field.width ?? (field.type === 'datetimepicker' ? 240 : 220)
   return typeof width === 'number' ? `${width}px` : width
 }
 
-function copyModel(value: Model): Model {
+/** 复制日期和数组字段，隔离表单编辑值与提交值。 */
+const copyModel = (value: Model): Model => {
   // 日期及多选数组单独复制，避免搜索条件与正在编辑的表单共享引用。
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, copyValue(item)])) as Model
 }
 
-function copyValue(value: unknown): unknown {
+const copyValue = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(copyValue)
   if (value instanceof Date) return new Date(value)
   return value
 }
 
-function search() {
+/** 提交当前筛选条件的副本。 */
+const search = () => {
   if (!props.loading) emit('search', copyModel(model.value))
 }
 
-function reset() {
+/** 清空各类控件并恢复字段默认值，然后发出重置事件。 */
+const reset = () => {
   if (props.loading) return
   const value = { ...model.value }
   for (const field of props.fields) {
@@ -48,19 +53,20 @@ function reset() {
   emit('reset', copyModel(value))
 }
 
-function searchOnEnter(event: KeyboardEvent | Event) {
+const searchOnEnter = (event: KeyboardEvent | Event) => {
   if (event instanceof KeyboardEvent && !event.isComposing && !event.repeat) {
     event.preventDefault()
     search()
   }
 }
 
-function dateInputId(field: FilterField<Model>): string | [string, string] {
+const dateInputId = (field: FilterField<Model>): string | [string, string] => {
   const id = `${formId}-${field.prop}`
   const type = field.type === 'datepicker' || field.type === 'datetimepicker' ? field.props?.type : ''
   return type?.endsWith('range') ? [id, `${id}-end`] : id
 }
 
+/** 暴露搜索与重置命令，供父组件按需调用。 */
 defineExpose({ search, reset })
 </script>
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 新增/编辑用户弹窗；编辑时留空密码表示沿用原密码。 */
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { createUser, updateUser, type CreateUserInput, type UserRecord } from '@/api/users'
@@ -48,7 +49,8 @@ watch(visible, opened => {
   formRef.value?.clearValidate()
 })
 
-async function saveUser() {
+/** 校验表单并调用对应新增或更新接口，成功后通知父页面刷新。 */
+const saveUser = async () => {
   if (saving.value) return
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return

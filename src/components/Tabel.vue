@@ -7,6 +7,11 @@ import type { PageChange, TabelAction, TabelActionColumn, TabelColumn } from './
 
 defineOptions({ inheritAttrs: false })
 
+/**
+ * 通用数据表格。
+ * 默认启用边框、溢出提示和分页；分页可由服务端或当前页数据驱动。
+ * action、selection-change 和 page-change 事件用于将用户操作交回调用方。
+ */
 const props = withDefaults(defineProps<{
   data: Row[]
   columns: TabelColumn<Row>[]
@@ -62,15 +67,18 @@ const resolvedActions = computed(() => props.actions.map(action => ({
   ...action
 })))
 
-function visibleActions(row: Row) {
+/** 按行配置过滤不可见操作项。 */
+const visibleActions = (row: Row) => {
   return resolvedActions.value.filter(action => !(typeof action.hidden === 'function' ? action.hidden(row) : action.hidden))
 }
 
-function isActionDisabled(action: TabelAction<Row>, row: Row) {
+/** 合并加载状态与操作项自身的禁用条件。 */
+const isActionDisabled = (action: TabelAction<Row>, row: Row) => {
   return props.loading || (typeof action.disabled === 'function' ? action.disabled(row) : action.disabled)
 }
 
-function triggerAction(action: TabelAction<Row>, row: Row, index: number) {
+/** 触发可用操作并向调用方发出操作键和行数据。 */
+const triggerAction = (action: TabelAction<Row>, row: Row, index: number) => {
   if (!isActionDisabled(action, row)) emit('action', action.key, row, index)
 }
 const tableRef = ref<TableInstance>()
@@ -81,13 +89,13 @@ const visibleRows = computed(() => {
   return props.data.slice(start, start + pageSize.value)
 })
 
-function changePage(page: number) {
+const changePage = (page: number) => {
   if (page === currentPage.value) return
   currentPage.value = page
   emit('page-change', { currentPage: page, pageSize: pageSize.value })
 }
 
-function changePageSize(size: number) {
+const changePageSize = (size: number) => {
   if (size === pageSize.value) return
   pageSize.value = size
   currentPage.value = 1
@@ -101,6 +109,7 @@ watch([totalRows, pageSize], () => {
   }
 })
 
+/** 暴露 Element Plus 表格选择及布局方法，供父组件批量操作使用。 */
 defineExpose({
   clearSelection: () => tableRef.value?.clearSelection(),
   toggleRowSelection: (row: Row, selected?: boolean) => tableRef.value?.toggleRowSelection(row, selected),

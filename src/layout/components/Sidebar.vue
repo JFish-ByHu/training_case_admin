@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 按当前路由和用户角色呈现导航菜单，并在导航后通知布局收起移动菜单。 */
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { DataAnalysis, User } from '@element-plus/icons-vue'
@@ -10,7 +11,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const activeMenu = computed(() => (route.path.startsWith('/users') ? '/users' : '/dashboard'))
 
-function selectMenu() {
+const selectMenu = () => {
   emit('navigate')
 }
 </script>

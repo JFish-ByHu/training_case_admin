@@ -34,6 +34,7 @@ const router = createRouter({
   ]
 })
 
+/** 根据登录态及用户角色限制页面访问，并按需加载当前用户资料。 */
 router.beforeEach(async to => {
   const authStore = useAuthStore(pinia)
   const loggedIn = Boolean(authStore.token)

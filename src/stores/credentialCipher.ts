@@ -2,7 +2,8 @@ const DATABASE_NAME = 'demo_admin_credentials'
 const STORE_NAME = 'keys'
 const KEY_NAME = 'remembered_password'
 
-function openKeyDatabase(): Promise<IDBDatabase> {
+/** 打开 IndexedDB 密钥库；数据库升级时创建密钥对象仓库。 */
+const openKeyDatabase = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DATABASE_NAME, 1)
     request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME)
@@ -11,7 +12,8 @@ function openKeyDatabase(): Promise<IDBDatabase> {
   })
 }
 
-async function getCredentialKey(): Promise<CryptoKey> {
+/** 获取非导出的 AES-GCM 密钥，并在首次使用时持久化候选密钥。 */
+const getCredentialKey = async (): Promise<CryptoKey> => {
   const candidate = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
     'encrypt',
     'decrypt'
@@ -36,15 +38,16 @@ async function getCredentialKey(): Promise<CryptoKey> {
   }
 }
 
-function encodeBytes(bytes: Uint8Array): string {
+const encodeBytes = (bytes: Uint8Array): string => {
   return btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
 }
 
-function decodeBytes(value: string): Uint8Array<ArrayBuffer> {
+const decodeBytes = (value: string): Uint8Array<ArrayBuffer> => {
   return Uint8Array.from(atob(value), character => character.charCodeAt(0))
 }
 
-export async function encryptPassword(password: string) {
+/** 使用随机初始化向量和 IndexedDB 密钥加密记住我密码。 */
+export const encryptPassword = async (password: string) => {
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const key = await getCredentialKey()
   const encrypted = await crypto.subtle.encrypt(
@@ -55,7 +58,8 @@ export async function encryptPassword(password: string) {
   return { iv: encodeBytes(iv), ciphertext: encodeBytes(new Uint8Array(encrypted)) }
 }
 
-export async function decryptPassword(iv: string, ciphertext: string): Promise<string> {
+/** 解密本地保存的记住我密码；密钥失效时由调用方清理旧凭据。 */
+export const decryptPassword = async (iv: string, ciphertext: string): Promise<string> => {
   const key = await getCredentialKey()
   const decrypted = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: decodeBytes(iv) },

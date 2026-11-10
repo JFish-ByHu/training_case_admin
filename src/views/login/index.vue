@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 登录页面负责获取一次性数字验证码、提交凭据并保存认证状态。 */
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
@@ -23,7 +24,8 @@ const rules: FormRules<typeof form> = {
   ]
 }
 
-async function loadCaptcha() {
+/** 获取新验证码并清空旧输入，避免重复提交已消费的验证码。 */
+const loadCaptcha = async () => {
   captcha.value = null
   form.captchaCode = ''
   formRef.value?.clearValidate('captchaCode')
@@ -34,7 +36,8 @@ async function loadCaptcha() {
   }
 }
 
-async function submitLogin() {
+/** 校验并提交登录表单；失败时刷新一次性验证码。 */
+const submitLogin = async () => {
   if (submitting.value) return
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
@@ -75,7 +78,7 @@ async function submitLogin() {
   ElMessage.success('登录成功')
 }
 
-function changeRememberMe(value: boolean | string | number) {
+const changeRememberMe = (value: boolean | string | number) => {
   if (!value) authStore.clearRememberedCredentials()
 }
 

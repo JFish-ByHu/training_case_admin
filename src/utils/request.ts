@@ -5,19 +5,22 @@ import 'element-plus/es/components/message/style/css'
 import 'nprogress/nprogress.css'
 import { pinia, useAuthStore } from '@/stores'
 
+/** 后端统一响应结构；业务成功与否由 code 判断，而非仅看 HTTP 状态。 */
 export interface ApiResponse<T> {
   code: number
   data: T
   msg: string
 }
 
+/** 扩展 Axios 配置，用于声明请求认证和统一错误提示行为。 */
 export interface RequestConfig<D = unknown> extends AxiosRequestConfig<D> {
-  /** 登录、验证码等公开接口可跳过 token。 */
+  /** 登录、验证码等公开接口跳过 Authorization 请求头。 */
   skipAuth?: boolean
   /** 页面自行处理错误时关闭统一提示。 */
   silent?: boolean
 }
 
+/** 请求失败的统一异常，保留后端业务码和 HTTP 状态码。 */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -37,11 +40,11 @@ const service = axios.create({
 NProgress.configure({ showSpinner: false })
 let pendingRequests = 0
 
-function startProgress() {
+const startProgress = () => {
   if (pendingRequests++ === 0) NProgress.start()
 }
 
-function finishProgress() {
+const finishProgress = () => {
   if (pendingRequests === 0) return
   if (--pendingRequests === 0) NProgress.done()
 }
@@ -58,7 +61,7 @@ service.interceptors.request.use(config => {
   return config
 })
 
-function isApiResponse(value: unknown): value is ApiResponse<unknown> {
+const isApiResponse = (value: unknown): value is ApiResponse<unknown> => {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -70,7 +73,7 @@ function isApiResponse(value: unknown): value is ApiResponse<unknown> {
   )
 }
 
-function reportError(error: ApiError, config?: RequestConfig): never {
+const reportError = (error: ApiError, config?: RequestConfig): never => {
   // 登录失败也可能是 401；公开接口不应清除已有登录状态。
   if ((error.status === 401 || error.code === 401) && !config?.skipAuth) {
     useAuthStore(pinia).removeToken()
@@ -122,25 +125,37 @@ service.interceptors.response.use(
   }
 )
 
-/** 返回后端 data；例如退出接口应声明为 request.post<null>(...)。 */
-export async function request<T, D = unknown>(config: RequestConfig<D>): Promise<T> {
+/**
+ * 发送请求并仅返回统一响应中的 data 字段。
+ * @typeParam T - 后端 data 字段的类型。
+ * @typeParam D - 请求体数据类型。
+ * @param config - Axios 请求配置及本项目的认证/提示扩展项。
+ * @returns 后端响应中的 data 内容。
+ */
+export const request = async <T, D = unknown>(config: RequestConfig<D>): Promise<T> => {
   const response = await service.request<ApiResponse<T>>(config)
   return response.data.data
 }
 
+/** 简化常见 HTTP 方法调用并统一返回后端 data 字段。 */
 export default {
+  /** 发送 GET 请求。 */
   get<T>(url: string, config?: RequestConfig): Promise<T> {
     return request<T>({ ...config, url, method: 'GET' })
   },
+  /** 发送 POST 请求。 */
   post<T>(url: string, data?: unknown, config?: RequestConfig): Promise<T> {
     return request<T>({ ...config, url, method: 'POST', data })
   },
+  /** 发送 PUT 请求。 */
   put<T>(url: string, data?: unknown, config?: RequestConfig): Promise<T> {
     return request<T>({ ...config, url, method: 'PUT', data })
   },
+  /** 发送 PATCH 请求。 */
   patch<T>(url: string, data?: unknown, config?: RequestConfig): Promise<T> {
     return request<T>({ ...config, url, method: 'PATCH', data })
   },
+  /** 发送 DELETE 请求；如需请求体，请通过 config.data 传入。 */
   delete<T>(url: string, config?: RequestConfig): Promise<T> {
     return request<T>({ ...config, url, method: 'DELETE' })
   }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 后台主布局，协调导航状态、移动端菜单、页面标题和退出登录。 */
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { logout } from '@/api/auth'
@@ -14,19 +15,20 @@ const mobileMenuOpen = ref(false)
 const signingOut = ref(false)
 const pageTitle = computed(() => String(route.meta.title ?? '控制台'))
 
-function toggleSidebar() {
+const toggleSidebar = () => {
   collapsed.value = !collapsed.value
 }
 
-function openMobileMenu() {
+const openMobileMenu = () => {
   mobileMenuOpen.value = true
 }
 
-function closeMobileMenu() {
+const closeMobileMenu = () => {
   mobileMenuOpen.value = false
 }
 
-async function signOut() {
+/** 请求服务端退出并始终清理本地凭据后跳转登录页。 */
+const signOut = async () => {
   if (signingOut.value) return
   signingOut.value = true
   try {

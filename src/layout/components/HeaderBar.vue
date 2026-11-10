@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 顶部栏组件契约：接收标题和状态，通过事件请求布局执行菜单及退出操作。 */
 import { ArrowDown, Expand, Fold, Menu, UserFilled } from '@element-plus/icons-vue'
 
 defineProps<{
@@ -13,7 +14,7 @@ const emit = defineEmits<{
   signOut: []
 }>()
 
-function selectAccountAction(command: string) {
+const selectAccountAction = (command: string) => {
   if (command === 'logout') emit('signOut')
 }
 </script>
