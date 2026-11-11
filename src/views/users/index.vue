@@ -6,11 +6,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { batchDeleteUsers, deleteUser, listUsers, readCurrentUser, readUser } from '@/api/users'
+import type { UserRecord, UserStatus } from '@/api/types/users'
 import {
-  batchDeleteUsers, deleteUser, listUsers, readCurrentUser, readUser,
-  type UserRecord, type UserStatus
-} from '@/api/users'
-import { Filter, Tabel, type FilterField, type TabelAction, type TabelColumn } from '@/components/index'
+  Filter,
+  Tabel,
+  type FilterField,
+  type TabelAction,
+  type TabelColumn
+} from '@/components/index'
 import UserFormDialog from './components/UserFormDialog.vue'
 import { useAuthStore } from '@/stores'
 
@@ -41,10 +45,15 @@ let listRequestId = 0
 
 const fields: FilterField<UserFilter>[] = [
   { prop: 'keyword', label: '用户名或昵称', type: 'input' },
-  { prop: 'status', label: '状态', type: 'select', options: [
-    { label: '启用', value: 'ENABLED' },
-    { label: '停用', value: 'DISABLED' }
-  ] }
+  {
+    prop: 'status',
+    label: '状态',
+    type: 'select',
+    options: [
+      { label: '启用', value: 'ENABLED' },
+      { label: '停用', value: 'DISABLED' }
+    ]
+  }
 ]
 
 const columns: TabelColumn<UserRecord>[] = [
@@ -108,9 +117,7 @@ const loadCurrentUser = async () => {
     currentUserId.value = user.id
     authStore.setUser(user)
     if (selectedUsers.value.some(user => user.id === currentUserId.value)) clearSelection()
-  } catch {
-    // 请求器会报告认证错误；后端仍会拒绝非法的自我管理操作。
-  }
+  } catch {}
 }
 
 const searchUsers = (value: UserFilter) => {
@@ -166,9 +173,16 @@ const confirmDeleteUsers = async (targets: UserRecord[], batch = false) => {
 
   try {
     await ElMessageBox.confirm(
-      batch ? `确定删除选中的 ${ids.length} 位用户吗？` : `确定删除用户「${targets[0]?.username}」吗？`,
+      batch
+        ? `确定删除选中的 ${ids.length} 位用户吗？`
+        : `确定删除用户「${targets[0]?.username}」吗？`,
       batch ? '批量删除' : '删除用户',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消', confirmButtonClass: 'el-button--danger' }
+      {
+        type: 'warning',
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        confirmButtonClass: 'el-button--danger'
+      }
     )
   } catch {
     return
@@ -181,7 +195,6 @@ const confirmDeleteUsers = async (targets: UserRecord[], batch = false) => {
     ElMessage.success(batch ? `已删除 ${ids.length} 位用户` : '用户已删除')
     await loadUsers()
   } catch {
-    // 请求器已显示错误，保留当前列表。
   } finally {
     mutating.value = false
   }
@@ -210,11 +223,22 @@ onMounted(() => {
 
 <template>
   <section class="users-page">
-    <Filter v-model="filterModel" :fields="fields" :loading="loading" @search="searchUsers" @reset="resetUsers" />
+    <Filter
+      v-model="filterModel"
+      :fields="fields"
+      :loading="loading"
+      @search="searchUsers"
+      @reset="resetUsers"
+    />
 
     <div class="table-toolbar">
       <ElButton type="primary" :icon="Plus" @click="openCreate">新增用户</ElButton>
-      <ElButton type="danger" :icon="Delete" :disabled="!selectedCount || loading || mutating" @click="deleteSelectedUsers">
+      <ElButton
+        type="danger"
+        :icon="Delete"
+        :disabled="!selectedCount || loading || mutating"
+        @click="deleteSelectedUsers"
+      >
         批量删除{{ selectedCount ? ` (${selectedCount})` : '' }}
       </ElButton>
     </div>
@@ -247,7 +271,12 @@ onMounted(() => {
       <template #createdAt="{ row }">{{ formatDateTime(row.createdAt) }}</template>
     </Tabel>
 
-    <UserFormDialog v-model="formVisible" :user="editingUser" :current-user-id="currentUserId" @saved="refreshAfterSave" />
+    <UserFormDialog
+      v-model="formVisible"
+      :user="editingUser"
+      :current-user-id="currentUserId"
+      @saved="refreshAfterSave"
+    />
 
     <ElDrawer v-model="detailVisible" title="用户详情" size="min(480px, 100vw)">
       <div v-loading="detailLoading">
@@ -255,11 +284,19 @@ onMounted(() => {
           <ElDescriptionsItem label="用户名">{{ detailUser.username }}</ElDescriptionsItem>
           <ElDescriptionsItem label="昵称">{{ detailUser.nickname }}</ElDescriptionsItem>
           <ElDescriptionsItem label="电话">{{ detailUser.phone || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="角色">{{ detailUser.role === 'ADMIN' ? '管理员' : '普通用户' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="状态">{{ detailUser.status === 'ENABLED' ? '启用' : '停用' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="角色">{{
+            detailUser.role === 'ADMIN' ? '管理员' : '普通用户'
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="状态">{{
+            detailUser.status === 'ENABLED' ? '启用' : '停用'
+          }}</ElDescriptionsItem>
           <ElDescriptionsItem label="简介">{{ detailUser.bio || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="创建时间">{{ formatDateTime(detailUser.createdAt) }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="更新时间">{{ formatDateTime(detailUser.updatedAt) }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="创建时间">{{
+            formatDateTime(detailUser.createdAt)
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="更新时间">{{
+            formatDateTime(detailUser.updatedAt)
+          }}</ElDescriptionsItem>
         </ElDescriptions>
       </div>
     </ElDrawer>
@@ -267,7 +304,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.users-page { width: 100%; }
+.users-page {
+  width: 100%;
+}
 .table-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -275,5 +314,7 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 16px;
 }
-.table-toolbar :deep(.el-button + .el-button) { margin-left: 0; }
+.table-toolbar :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
 </style>

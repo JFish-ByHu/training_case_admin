@@ -13,10 +13,10 @@ export interface AuthUser {
   role: 'ADMIN' | 'USER'
 }
 
-/** 从当前会话恢复用户缓存，并拒绝结构不完整或角色非法的数据。 */
+/** 从本地存储恢复用户资料，兼容旧会话缓存并校验数据结构。 */
 const restoreCurrentUser = (): AuthUser | null => {
   try {
-    const value = sessionStorage.getItem(USER_KEY)
+    const value = sessionStorage.getItem(USER_KEY) ?? localStorage.getItem(USER_KEY)
     if (!value) return null
     const user: unknown = JSON.parse(value)
     if (typeof user === 'object' && user !== null &&
@@ -24,12 +24,15 @@ const restoreCurrentUser = (): AuthUser | null => {
       'username' in user && typeof user.username === 'string' &&
       'nickname' in user && typeof user.nickname === 'string' &&
       'role' in user && (user.role === 'ADMIN' || user.role === 'USER')) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user))
+      sessionStorage.removeItem(USER_KEY)
       return user as AuthUser
     }
   } catch {
     // 无效的本地缓存不影响重新获取用户信息。
   }
   sessionStorage.removeItem(USER_KEY)
+  localStorage.removeItem(USER_KEY)
   return null
 }
 
@@ -52,15 +55,17 @@ export const useAuthStore = defineStore('auth', {
       sessionStorage.setItem(TOKEN_KEY, token)
       this.token = token
     },
-    /** 更新当前用户缓存。 */
+    /** 更新 Pinia 中的用户资料，并同步到本地存储。 */
     setUser(user: AuthUser) {
-      sessionStorage.setItem(USER_KEY, JSON.stringify(user))
+      localStorage.setItem(USER_KEY, JSON.stringify(user))
+      sessionStorage.removeItem(USER_KEY)
       this.user = user
     },
     /** 清除访问令牌和用户会话信息。 */
     removeToken() {
       sessionStorage.removeItem(TOKEN_KEY)
       sessionStorage.removeItem(USER_KEY)
+      localStorage.removeItem(USER_KEY)
       this.token = null
       this.user = null
     },

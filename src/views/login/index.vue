@@ -3,7 +3,8 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { fetchCaptcha, login, type CaptchaResult, type LoginResult } from '@/api/auth'
+import { fetchCaptcha, login } from '@/api/auth'
+import type { CaptchaResult, LoginResult } from '@/api/types/auth'
 import { useAuthStore } from '@/stores'
 import LoginAnimation from './components/LoginAnimation.vue'
 

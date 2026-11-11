@@ -2,7 +2,8 @@
 /** 新增/编辑用户弹窗；编辑时留空密码表示沿用原密码。 */
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { createUser, updateUser, type CreateUserInput, type UserRecord } from '@/api/users'
+import { createUser, updateUser } from '@/api/users'
+import type { CreateUserInput, UserRecord } from '@/api/types/users'
 
 const props = defineProps<{ user?: UserRecord | null; currentUserId?: string | null }>()
 const visible = defineModel<boolean>({ required: true })

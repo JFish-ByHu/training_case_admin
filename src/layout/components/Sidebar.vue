@@ -18,9 +18,8 @@ const selectMenu = () => {
 
 <template>
   <div class="sidebar" :class="{ 'is-collapsed': collapsed }">
-    <RouterLink class="brand" to="/dashboard" @click="selectMenu">
-      <span class="brand-mark">A</span>
-      <span class="brand-name" :aria-hidden="collapsed">Admin Demo</span>
+    <RouterLink class="brand" to="/dashboard" aria-label="Admin Demo 控制台" @click="selectMenu">
+      <span class="brand-name">Admin<span class="brand-suffix" :aria-hidden="collapsed">&nbsp;Demo</span></span>
     </RouterLink>
 
     <nav aria-label="主导航">
@@ -49,39 +48,33 @@ const selectMenu = () => {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   height: 64px;
-  padding: 0 18px;
+  padding: 0 8px;
+  overflow: hidden;
   border-bottom: 1px solid var(--el-border-color-light);
   color: var(--el-text-color-primary);
   text-decoration: none;
   white-space: nowrap;
 }
 
-.brand-mark {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
-  font-size: 17px;
+.brand-name {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 15px;
   font-weight: 700;
 }
 
-.brand-name {
+/* 仅收起后缀，保留 Admin，并与侧栏宽度使用相同的过渡时长。 */
+.brand-suffix {
   overflow: hidden;
-  max-width: 140px;
-  font-size: 15px;
-  font-weight: 700;
-  text-overflow: ellipsis;
+  max-width: 60px;
   opacity: 1;
   transition: max-width 280ms ease, opacity 180ms ease;
 }
 
-.sidebar.is-collapsed .brand-name {
+.sidebar.is-collapsed .brand-suffix {
   max-width: 0;
   opacity: 0;
 }
@@ -131,7 +124,7 @@ const selectMenu = () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brand-name,
+  .brand-suffix,
   .menu-label,
   :deep(.el-menu-item .el-icon) { transition: none; }
 }

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 /** 顶部栏组件契约：接收标题和状态，通过事件请求布局执行菜单及退出操作。 */
 import { ArrowDown, Expand, Fold, Menu, UserFilled } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores'
+
+const authStore = useAuthStore()
+/** 昵称随 Pinia 用户资料更新，缺省时使用登录用户名。 */
+const accountName = computed(() => authStore.user?.nickname || authStore.user?.username || '我的账号')
 
 defineProps<{
   title: string
@@ -45,9 +51,9 @@ const selectAccountAction = (command: string) => {
     </div>
 
     <ElDropdown trigger="click" @command="selectAccountAction">
-      <ElButton class="account-button" text aria-label="我的账号">
+      <ElButton class="account-button" text :aria-label="`${accountName}的账号菜单`" :title="accountName">
         <ElIcon :size="18"><UserFilled /></ElIcon>
-        <span>我的账号</span>
+        <span class="account-name">{{ accountName }}</span>
         <ElIcon :size="14"><ArrowDown /></ElIcon>
       </ElButton>
       <template #dropdown>
@@ -90,8 +96,16 @@ const selectAccountAction = (command: string) => {
 }
 
 .account-button {
+  flex-shrink: 0;
   height: 40px;
   color: var(--el-text-color-regular);
+}
+
+.account-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-menu-button {
@@ -115,8 +129,8 @@ const selectAccountAction = (command: string) => {
     gap: 6px;
   }
 
-  .account-button span {
-    display: none;
+  .account-name {
+    max-width: 80px;
   }
 }
 </style>

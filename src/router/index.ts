@@ -40,14 +40,15 @@ router.beforeEach(async to => {
   const loggedIn = Boolean(authStore.token)
   if (to.matched.some(record => record.meta.requiresAuth) && !loggedIn) return { name: 'login' }
   if (to.name === 'login' && loggedIn) return { name: 'dashboard' }
-  if (to.matched.some(record => record.meta.requiresAdmin)) {
-    if (!authStore.user) {
-      try {
-        authStore.setUser(await readCurrentUser())
-      } catch {
-        return { name: authStore.token ? 'dashboard' : 'login' }
-      }
+  // 进入后台时补齐缺失的用户资料，供顶部昵称和侧边菜单共用。
+  if (to.matched.some(record => record.meta.requiresAuth) && !authStore.user) {
+    try {
+      authStore.setUser(await readCurrentUser())
+    } catch {
+      return authStore.token ? false : { name: 'login' }
     }
+  }
+  if (to.matched.some(record => record.meta.requiresAdmin)) {
     if (authStore.user?.role !== 'ADMIN') return { name: 'dashboard' }
   }
 })
