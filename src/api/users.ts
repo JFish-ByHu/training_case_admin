@@ -5,9 +5,6 @@ import type { CreateUserInput, UpdateUserInput, UserPage, UserQuery, UserRecord 
 export const listUsers = (query: UserQuery) =>
   request.get<UserPage>('/users/list', { params: query })
 
-/** 根据 ID 查询用户详情。 */
-export const readUser = (id: string) => request.get<UserRecord>('/users/detail', { params: { id } })
-
 /** 创建用户并返回保存后的资料。 */
 export const createUser = (input: CreateUserInput) =>
   request.post<UserRecord>('/users/create', input)

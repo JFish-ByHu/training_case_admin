@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * 用户管理页面：负责筛选、分页、详情查看和单条/批量管理操作。
+ * 用户管理页面：负责筛选、分页和单条/批量管理操作。
  * 数据请求及用户资料模型由 api/users 封装，与通用 Filter、Tabel 组件协作。
  */
 import { computed, onMounted, ref } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { batchDeleteUsers, deleteUser, listUsers, readUser } from '@/api/users'
+import { batchDeleteUsers, deleteUser, listUsers } from '@/api/users'
 import type { UserRecord, UserStatus } from '@/api/types/users'
 import {
   Filter,
@@ -30,14 +30,11 @@ const users = ref<UserRecord[]>([])
 const total = ref(0)
 const loading = ref(false)
 const mutating = ref(false)
-const openingUserId = ref<string | null>(null)
 const selectedUsers = ref<UserRecord[]>([])
 const tableRef = ref<{ clearSelection: () => void }>()
 const formVisible = ref(false)
 const editingUser = ref<UserRecord | null>(null)
 const detailVisible = ref(false)
-const detailLoading = ref(false)
-const detailUser = ref<UserRecord | null>(null)
 let listRequestId = 0
 
 const fields: FilterField<UserFilter>[] = [
@@ -127,30 +124,9 @@ const openCreate = () => {
   formVisible.value = true
 }
 
-const openEdit = async (row: UserRecord) => {
-  if (openingUserId.value) return
-  openingUserId.value = row.id
-  try {
-    editingUser.value = await readUser(row.id)
-    formVisible.value = true
-  } catch {
-    // 请求器已显示错误。
-  } finally {
-    openingUserId.value = null
-  }
-}
-
-const openDetail = async (row: UserRecord) => {
-  detailVisible.value = true
-  detailLoading.value = true
-  detailUser.value = null
-  try {
-    detailUser.value = await readUser(row.id)
-  } catch {
-    detailVisible.value = false
-  } finally {
-    detailLoading.value = false
-  }
+const openEdit = (row: UserRecord) => {
+  editingUser.value = row
+  formVisible.value = true
 }
 
 /** 二次确认后删除指定用户；批量操作与单条删除共用此流程。 */
@@ -192,8 +168,8 @@ const deleteSelectedUsers = () => {
 }
 
 const selectUserAction = (key: string, row: UserRecord) => {
-  if (key === 'edit') void openEdit(row)
-  if (key === 'detail') void openDetail(row)
+  if (key === 'edit') openEdit(row)
+  if (key === 'detail') detailVisible.value = true
   if (key === 'delete') void confirmDeleteUsers([row])
 }
 
@@ -262,28 +238,7 @@ onMounted(() => {
       @saved="refreshAfterSave"
     />
 
-    <ElDrawer v-model="detailVisible" title="用户详情" size="min(480px, 100vw)">
-      <div v-loading="detailLoading">
-        <ElDescriptions v-if="detailUser" :column="1" border>
-          <ElDescriptionsItem label="用户名">{{ detailUser.username }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="昵称">{{ detailUser.nickname }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="电话">{{ detailUser.phone || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="角色">{{
-            detailUser.role === 'ADMIN' ? '管理员' : '普通用户'
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="状态">{{
-            detailUser.status === 'ENABLED' ? '启用' : '停用'
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="简介">{{ detailUser.bio || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="创建时间">{{
-            formatDateTime(detailUser.createdAt)
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="更新时间">{{
-            formatDateTime(detailUser.updatedAt)
-          }}</ElDescriptionsItem>
-        </ElDescriptions>
-      </div>
-    </ElDrawer>
+    <ElDrawer v-model="detailVisible" title="用户详情" size="min(480px, 100vw)" />
   </section>
 </template>
 
