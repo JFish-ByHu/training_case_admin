@@ -1,19 +1,18 @@
 <script setup lang="ts">
-/** 新增/编辑用户弹窗；编辑时留空密码表示沿用原密码。 */
+/** 新增和编辑用户资料的弹窗。 */
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { createUser, updateUser } from '@/api/users'
 import type { CreateUserInput, UserRecord } from '@/api/types/users'
 
-const props = defineProps<{ user?: UserRecord | null; currentUserId?: string | null }>()
+const props = defineProps<{ user?: UserRecord | null }>()
 const visible = defineModel<boolean>({ required: true })
 const emit = defineEmits<{ saved: [] }>()
 const formRef = ref<FormInstance>()
 const saving = ref(false)
 const isEdit = computed(() => Boolean(props.user))
-const isSelf = computed(() => props.user?.id === props.currentUserId)
 const form = reactive<CreateUserInput>({
-  username: '', password: '', nickname: '', phone: '', bio: '', role: 'USER', status: 'ENABLED'
+  username: '', nickname: '', phone: '', bio: '', role: 'USER', status: 'ENABLED'
 })
 
 const rules: FormRules<CreateUserInput> = {
@@ -21,10 +20,6 @@ const rules: FormRules<CreateUserInput> = {
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { pattern: /^[a-z0-9_]{3,32}$/, message: '请输入 3-32 位小写字母、数字或下划线', trigger: 'blur' }
   ],
-  password: [{ validator: (_rule, value: string, callback) => {
-    if ((isEdit.value && !value) || (value.length >= 8 && value.length <= 72 && new TextEncoder().encode(value).length <= 72)) callback()
-    else callback(new Error('密码需为 8-72 位，且不超过 72 字节'))
-  }, trigger: 'blur' }],
   nickname: [
     { required: true, whitespace: true, message: '请输入昵称', trigger: 'blur' },
     { max: 50, message: '昵称不能超过 50 个字符', trigger: 'blur' }
@@ -34,13 +29,9 @@ const rules: FormRules<CreateUserInput> = {
 }
 
 watch(visible, opened => {
-  if (!opened) {
-    form.password = ''
-    return
-  }
+  if (!opened) return
   Object.assign(form, {
     username: props.user?.username ?? '',
-    password: '',
     nickname: props.user?.nickname ?? '',
     phone: props.user?.phone ?? '',
     bio: props.user?.bio ?? '',
@@ -61,7 +52,6 @@ const saveUser = async () => {
     if (props.user) {
       await updateUser({
         id: props.user.id,
-        ...(form.password ? { password: form.password } : {}),
         nickname: form.nickname.trim(),
         phone: form.phone.trim(),
         bio: form.bio.trim(),
@@ -71,7 +61,6 @@ const saveUser = async () => {
     } else {
       await createUser({
         username: form.username.trim(),
-        password: form.password,
         nickname: form.nickname.trim(),
         phone: form.phone.trim(),
         bio: form.bio.trim(),
@@ -106,14 +95,11 @@ const saveUser = async () => {
         <ElFormItem label="用户名" prop="username">
           <ElInput v-model="form.username" :disabled="isEdit" maxlength="32" autocomplete="off" />
         </ElFormItem>
-        <ElFormItem :label="isEdit ? '新密码' : '初始密码'" prop="password">
-          <ElInput v-model="form.password" type="password" show-password autocomplete="new-password" :placeholder="isEdit ? '留空则不修改' : ''" />
-        </ElFormItem>
-      </div>
-      <div class="form-row">
         <ElFormItem label="昵称" prop="nickname">
           <ElInput v-model="form.nickname" maxlength="50" />
         </ElFormItem>
+      </div>
+      <div class="form-row">
         <ElFormItem label="电话" prop="phone">
           <ElInput v-model="form.phone" maxlength="32" />
         </ElFormItem>
@@ -124,7 +110,7 @@ const saveUser = async () => {
         </ElFormItem>
         <ElFormItem label="状态" prop="status">
           <div class="status-control">
-            <ElSwitch v-model="form.status" active-value="ENABLED" inactive-value="DISABLED" :disabled="isSelf" />
+            <ElSwitch v-model="form.status" active-value="ENABLED" inactive-value="DISABLED" />
             <span>{{ form.status === 'ENABLED' ? '启用' : '停用' }}</span>
           </div>
         </ElFormItem>

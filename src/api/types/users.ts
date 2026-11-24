@@ -4,7 +4,7 @@ export type UserRole = 'ADMIN' | 'USER'
 /** 用户账号状态，与后端枚举值保持一致。 */
 export type UserStatus = 'ENABLED' | 'DISABLED'
 
-/** 用户管理接口返回的账号资料，不包含密码信息。 */
+/** 用户管理接口返回的用户资料。 */
 export interface UserRecord {
   id: string
   username: string
@@ -33,10 +33,9 @@ export interface UserPage {
   pageSize: number
 }
 
-/** 管理员创建普通用户时提交的资料及初始密码。 */
+/** 创建用户时提交的资料。 */
 export interface CreateUserInput {
   username: string
-  password: string
   nickname: string
   phone: string
   bio: string
@@ -44,10 +43,9 @@ export interface CreateUserInput {
   status: UserStatus
 }
 
-/** 管理员更新用户时提交的资料；密码为空时不修改密码。 */
+/** 更新用户时提交的资料。 */
 export interface UpdateUserInput {
   id: string
-  password?: string
   nickname: string
   phone: string
   bio: string

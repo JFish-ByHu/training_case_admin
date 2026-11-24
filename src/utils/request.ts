@@ -3,24 +3,21 @@ import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'element-plus/es/components/message/style/css'
 import 'nprogress/nprogress.css'
-import { pinia, useAuthStore } from '@/stores'
 
-/** 后端统一响应结构；业务成功与否由 code 判断，而非仅看 HTTP 状态。 */
+/** 后端统一响应结构；code 对应 HTTP 状态。 */
 export interface ApiResponse<T> {
   code: number
   data: T
   msg: string
 }
 
-/** 扩展 Axios 配置，用于声明请求认证和统一错误提示行为。 */
+/** 扩展 Axios 配置，用于控制统一错误提示行为。 */
 export interface RequestConfig<D = unknown> extends AxiosRequestConfig<D> {
-  /** 登录、验证码等公开接口跳过 Authorization 请求头。 */
-  skipAuth?: boolean
   /** 页面自行处理错误时关闭统一提示。 */
   silent?: boolean
 }
 
-/** 请求失败的统一异常，保留后端业务码和 HTTP 状态码。 */
+/** 请求失败的统一异常，保留响应体的 code 和 HTTP 状态。 */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -50,13 +47,6 @@ const finishProgress = () => {
 }
 
 service.interceptors.request.use(config => {
-  const { skipAuth } = config as RequestConfig
-  const { token } = useAuthStore(pinia)
-  if (skipAuth) {
-    config.headers.delete('Authorization')
-  } else if (token) {
-    config.headers.set('Authorization', `Bearer ${token}`)
-  }
   startProgress()
   return config
 })
@@ -74,10 +64,6 @@ const isApiResponse = (value: unknown): value is ApiResponse<unknown> => {
 }
 
 const reportError = (error: ApiError, config?: RequestConfig): never => {
-  // 登录失败也可能是 401；公开接口不应清除已有登录状态。
-  if ((error.status === 401 || error.code === 401) && !config?.skipAuth) {
-    useAuthStore(pinia).removeToken()
-  }
   if (!config?.silent) {
     ElMessage.error({ message: error.message, grouping: true })
   }
@@ -129,7 +115,7 @@ service.interceptors.response.use(
  * 发送请求并仅返回统一响应中的 data 字段。
  * @typeParam T - 后端 data 字段的类型。
  * @typeParam D - 请求体数据类型。
- * @param config - Axios 请求配置及本项目的认证/提示扩展项。
+ * @param config - Axios 请求配置及提示扩展项。
  * @returns 后端响应中的 data 内容。
  */
 export const request = async <T, D = unknown>(config: RequestConfig<D>): Promise<T> => {

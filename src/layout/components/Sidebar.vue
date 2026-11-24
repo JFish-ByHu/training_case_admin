@@ -1,14 +1,12 @@
 <script setup lang="ts">
-/** 按当前路由和用户角色呈现导航菜单，并在导航后通知布局收起移动菜单。 */
+/** 按当前路由呈现导航菜单，并在导航后通知布局收起移动菜单。 */
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { DataAnalysis, User } from '@element-plus/icons-vue'
-import { useAuthStore } from '@/stores'
 
 defineProps<{ collapsed?: boolean }>()
 const emit = defineEmits<{ navigate: [] }>()
 const route = useRoute()
-const authStore = useAuthStore()
 const activeMenu = computed(() => (route.path.startsWith('/users') ? '/users' : '/dashboard'))
 
 const selectMenu = () => {
@@ -28,7 +26,7 @@ const selectMenu = () => {
           <ElIcon><DataAnalysis /></ElIcon>
           <span class="menu-label" :aria-hidden="collapsed">控制台</span>
         </ElMenuItem>
-        <ElMenuItem v-if="authStore.user?.role === 'ADMIN'" index="/users" :title="collapsed ? '用户管理' : undefined">
+        <ElMenuItem index="/users" :title="collapsed ? '用户管理' : undefined">
           <ElIcon><User /></ElIcon>
           <span class="menu-label" :aria-hidden="collapsed">用户管理</span>
         </ElMenuItem>

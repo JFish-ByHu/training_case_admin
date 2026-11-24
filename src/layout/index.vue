@@ -1,18 +1,13 @@
 <script setup lang="ts">
-/** 后台主布局，协调导航状态、移动端菜单、页面标题和退出登录。 */
+/** 后台主布局，协调导航状态、移动端菜单、页面标题。 */
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { logout } from '@/api/auth'
-import { useAuthStore } from '@/stores'
+import { useRoute } from 'vue-router'
 import HeaderBar from './components/HeaderBar.vue'
 import Sidebar from './components/Sidebar.vue'
 
 const route = useRoute()
-const router = useRouter()
-const authStore = useAuthStore()
 const collapsed = ref(false)
 const mobileMenuOpen = ref(false)
-const signingOut = ref(false)
 const pageTitle = computed(() => String(route.meta.title ?? '控制台'))
 
 const toggleSidebar = () => {
@@ -25,21 +20,6 @@ const openMobileMenu = () => {
 
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false
-}
-
-/** 请求服务端退出并始终清理本地凭据后跳转登录页。 */
-const signOut = async () => {
-  if (signingOut.value) return
-  signingOut.value = true
-  try {
-    await logout()
-  } catch {
-    // 服务端退出失败时仍清除本地登录状态。
-  } finally {
-    authStore.removeToken()
-    await router.replace('/login')
-    signingOut.value = false
-  }
 }
 </script>
 
@@ -57,10 +37,8 @@ const signOut = async () => {
       <HeaderBar
         :title="pageTitle"
         :collapsed="collapsed"
-        :signing-out="signingOut"
         @toggle-sidebar="toggleSidebar"
         @open-mobile-menu="openMobileMenu"
-        @sign-out="signOut"
       />
       <main class="layout-main">
         <RouterView />

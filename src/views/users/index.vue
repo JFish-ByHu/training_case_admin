@@ -6,7 +6,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { batchDeleteUsers, deleteUser, listUsers, readCurrentUser, readUser } from '@/api/users'
+import { batchDeleteUsers, deleteUser, listUsers, readUser } from '@/api/users'
 import type { UserRecord, UserStatus } from '@/api/types/users'
 import {
   Filter,
@@ -16,7 +16,6 @@ import {
   type TabelColumn
 } from '@/components/index'
 import UserFormDialog from './components/UserFormDialog.vue'
-import { useAuthStore } from '@/stores'
 
 interface UserFilter {
   keyword: string
@@ -24,7 +23,6 @@ interface UserFilter {
 }
 
 const filterModel = ref<UserFilter>({ keyword: '', status: '' })
-const authStore = useAuthStore()
 const appliedFilter = ref<UserFilter>({ keyword: '', status: '' })
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -33,7 +31,6 @@ const total = ref(0)
 const loading = ref(false)
 const mutating = ref(false)
 const openingUserId = ref<string | null>(null)
-const currentUserId = ref<string | null>(null)
 const selectedUsers = ref<UserRecord[]>([])
 const tableRef = ref<{ clearSelection: () => void }>()
 const formVisible = ref(false)
@@ -67,7 +64,7 @@ const columns: TabelColumn<UserRecord>[] = [
 
 const actions: TabelAction<UserRecord>[] = [
   { key: 'edit' },
-  { key: 'delete', disabled: row => row.id === currentUserId.value },
+  { key: 'delete' },
   { key: 'detail' }
 ]
 const selectedCount = computed(() => selectedUsers.value.length)
@@ -109,15 +106,6 @@ const loadUsers = async () => {
   } finally {
     if (requestId === listRequestId) loading.value = false
   }
-}
-
-const loadCurrentUser = async () => {
-  try {
-    const user = await readCurrentUser()
-    currentUserId.value = user.id
-    authStore.setUser(user)
-    if (selectedUsers.value.some(user => user.id === currentUserId.value)) clearSelection()
-  } catch {}
 }
 
 const searchUsers = (value: UserFilter) => {
@@ -169,7 +157,6 @@ const openDetail = async (row: UserRecord) => {
 const confirmDeleteUsers = async (targets: UserRecord[], batch = false) => {
   if (mutating.value || !targets.length) return
   const ids = [...new Set(targets.map(user => user.id))]
-  if (currentUserId.value && ids.includes(currentUserId.value)) return
 
   try {
     await ElMessageBox.confirm(
@@ -216,7 +203,6 @@ const refreshAfterSave = () => {
 }
 
 onMounted(() => {
-  void loadCurrentUser()
   void loadUsers()
 })
 </script>
@@ -253,7 +239,6 @@ onMounted(() => {
       :loading="loading"
       :page-sizes="[10, 20, 50, 100]"
       :selection="true"
-      :selectable="row => row.id !== currentUserId"
       :actions="actions"
       :action-column="{ fixed: 'right' }"
       row-key="id"
@@ -274,7 +259,6 @@ onMounted(() => {
     <UserFormDialog
       v-model="formVisible"
       :user="editingUser"
-      :current-user-id="currentUserId"
       @saved="refreshAfterSave"
     />
 

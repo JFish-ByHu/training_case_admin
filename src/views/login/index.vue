@@ -1,97 +1,5 @@
 <script setup lang="ts">
-/** 登录页面负责获取一次性数字验证码、提交凭据并保存认证状态。 */
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { fetchCaptcha, login } from '@/api/auth'
-import type { CaptchaResult, LoginResult } from '@/api/types/auth'
-import { useAuthStore } from '@/stores'
 import LoginAnimation from './components/LoginAnimation.vue'
-
-const router = useRouter()
-const authStore = useAuthStore()
-const formRef = ref<FormInstance>()
-const form = reactive({ username: '', password: '', captchaCode: '' })
-const captcha = ref<CaptchaResult | null>(null)
-const captchaLoading = ref(false)
-const submitting = ref(false)
-
-const rules: FormRules<typeof form> = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  captchaCode: [
-    { required: true, message: '请输入验证码', trigger: 'blur' },
-    { pattern: /^[0-9]{4}$/, message: '请输入4位数字验证码', trigger: 'blur' }
-  ]
-}
-
-/** 获取新验证码并清空旧输入，避免重复提交已消费的验证码。 */
-const loadCaptcha = async () => {
-  captcha.value = null
-  form.captchaCode = ''
-  formRef.value?.clearValidate('captchaCode')
-  try {
-    captcha.value = await fetchCaptcha()
-  } catch {
-    // 请求器已经显示错误，保留重新获取入口。
-  }
-}
-
-/** 校验并提交登录表单；失败时刷新一次性验证码。 */
-const submitLogin = async () => {
-  if (submitting.value) return
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  if (!captcha.value) {
-    ElMessage.warning('请先获取验证码')
-    return
-  }
-
-  submitting.value = true
-  let result: LoginResult
-  try {
-    result = await login({
-      username: form.username.trim(),
-      password: form.password,
-      captchaId: captcha.value.captchaId,
-      captchaCode: form.captchaCode
-    })
-  } catch {
-    await loadCaptcha()
-    submitting.value = false
-    return
-  }
-
-  authStore.setToken(result.accessToken)
-  authStore.setUser(result.user)
-  if (authStore.rememberMe) {
-    try {
-      await authStore.saveRememberedCredentials(form.username.trim(), form.password)
-    } catch {
-      authStore.clearRememberedCredentials()
-      ElMessage.warning('无法保存登录信息')
-    }
-  } else {
-    authStore.clearRememberedCredentials()
-  }
-  submitting.value = false
-  await router.replace('/dashboard')
-  ElMessage.success('登录成功')
-}
-
-const changeRememberMe = (value: boolean | string | number) => {
-  if (!value) authStore.clearRememberedCredentials()
-}
-
-onMounted(() => {
-  void loadCaptcha()
-  void authStore.restoreRememberedCredentials().then(credentials => {
-    if (credentials && !form.username && !form.password) {
-      form.username = credentials.username
-      form.password = credentials.password
-    }
-  })
-})
 </script>
 
 <template>
@@ -106,16 +14,9 @@ onMounted(() => {
         <h2 id="login-title">欢迎登录</h2>
       </header>
 
-      <ElForm
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-        @submit.prevent="submitLogin"
-      >
+      <ElForm label-position="top" disabled @submit.prevent>
         <ElFormItem prop="username">
           <ElInput
-            v-model="form.username"
             aria-label="用户名"
             autocomplete="username"
             placeholder="请输入用户名"
@@ -125,7 +26,6 @@ onMounted(() => {
 
         <ElFormItem prop="password">
           <ElInput
-            v-model="form.password"
             aria-label="密码"
             autocomplete="current-password"
             placeholder="请输入密码"
@@ -135,39 +35,8 @@ onMounted(() => {
           />
         </ElFormItem>
 
-        <ElFormItem prop="captchaCode">
-          <div class="captcha-row">
-            <ElInput
-              v-model="form.captchaCode"
-              aria-label="验证码"
-              autocomplete="off"
-              inputmode="numeric"
-              maxlength="4"
-              placeholder="请输入验证码"
-              size="large"
-            />
-            <ElButton
-              class="captcha-display"
-              :disabled="submitting"
-              :loading="captchaLoading"
-              size="large"
-              title="刷新验证码"
-              type="default"
-              @click="loadCaptcha"
-            >
-              {{ captcha?.captchaCode }}
-            </ElButton>
-          </div>
-        </ElFormItem>
-
-        <div class="form-options">
-          <ElCheckbox v-model="authStore.rememberMe" @change="changeRememberMe">记住我</ElCheckbox>
-        </div>
-
         <ElButton
           class="submit-button"
-          :loading="submitting"
-          native-type="submit"
           size="large"
           type="primary"
         >
@@ -306,31 +175,6 @@ onMounted(() => {
 .submit-button:focus-visible {
   border-color: var(--el-color-primary-dark-2);
   background: var(--el-color-primary-dark-2);
-}
-
-.captcha-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.captcha-row :deep(.el-input) {
-  min-width: 0;
-  flex: 1;
-}
-
-.captcha-display {
-  width: 116px;
-  height: 40px;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.form-options {
-  margin-bottom: 24px;
 }
 
 .form-options :deep(.el-checkbox) {
